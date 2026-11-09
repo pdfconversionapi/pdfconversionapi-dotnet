@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;netstandard2.0</TargetFrameworks>
+    <RootNamespace>PdfConversionApi</RootNamespace>
+    <AssemblyName>PdfConversionApi</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- Keep in step with PdfConversionApiClient.Version (a unit test checks it). -->
+    <Version>0.1.0</Version>
+
+    <PackageId>PdfConversionApi</PackageId>
+    <Title>PDF Conversion API client for .NET</Title>
+    <Authors>Zeel Shekhaliya</Authors>
+    <Company>Zeel Shekhaliya</Company>
+    <Copyright>Copyright (c) 2026 Zeel Shekhaliya</Copyright>
+    <Description>The official .NET client for the PDF Conversion API (https://pdfconversionapi.com): convert documents, images and PDFs with one async call, with typed results, typed errors and safe retries.</Description>
+    <PackageTags>pdf;convert;conversion;docx;pdf-to-jpg;merge;api;sdk</PackageTags>
+    <PackageProjectUrl>https://pdfconversionapi.com/docs</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/pdfconversionapi/pdfconversionapi-dotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>https://github.com/pdfconversionapi/pdfconversionapi-dotnet/blob/main/CHANGELOG.md</PackageReleaseNotes>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <IsTrimmable>true</IsTrimmable>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Text.Json" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <None Include="../../LICENSE" Pack="true" PackagePath="/" />
+    <None Include="../../CHANGELOG.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PdfConversionApi.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,123 @@
+name: release
+
+# Publishes to NuGet when a version tag such as v0.1.0 is pushed. The tag must match the
+# <Version> in src/PdfConversionApi/PdfConversionApi.csproj.
+#
+# 1. test: checks the tag, builds, runs the unit and conformance tests on .NET 8, 9 and 10 (with
+#    the suite bundled in conformance/), then the live tests against the production API on
+#    .NET 10 when the PDFCONVERSIONAPI_KEY secret is set, and packs the package.
+# 2. publish: runs in the "nuget" environment (it waits for a reviewer's approval when the
+#    environment requires one) and pushes that package. It uses NuGet trusted publishing: the
+#    NuGet/login action trades the job's OIDC token for a short-lived API key, for the nuget.org
+#    account named by the NUGET_USER repository variable. When the NUGET_API_KEY secret is set,
+#    it pushes with that key instead (the fallback for a first release that trusted publishing
+#    refuses).
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+
+jobs:
+  test:
+    name: Test and pack
+    runs-on: ubuntu-latest
+    env:
+      PDFCONVERSIONAPI_CONFORMANCE_DIR: ${{ github.workspace }}/conformance
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      # The conformance runner starts the shared mock API with Node.js.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the tag against the package version
+        run: |
+          version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' src/PdfConversionApi/PdfConversionApi.csproj)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match the package version $version." >&2
+            exit 1
+          fi
+
+      - name: Check that the conformance suite is in the repository
+        run: |
+          test -f conformance/cases.json && test -f conformance/mock-server.mjs || {
+            echo "::error::conformance/ is missing: this repository keeps a copy of the shared test suite (https://github.com/pdfconversionapi/sdk-conformance) there"
+            exit 1
+          }
+
+      - name: Build (warnings are errors)
+        run: dotnet build PdfConversionApi.sln -c Release
+
+      - name: Unit and conformance tests on .NET 8, 9 and 10
+        run: dotnet test tests/PdfConversionApi.Tests -c Release --no-build --filter "Category!=Live"
+
+      - name: Live tests against the production API
+        env:
+          PDFCONVERSIONAPI_KEY: ${{ secrets.PDFCONVERSIONAPI_KEY }}
+          PDFCONVERSIONAPI_LIVE_BASE_URL: https://api.pdfconversionapi.com
+        run: |
+          if [ -z "$PDFCONVERSIONAPI_KEY" ]; then
+            echo "::warning::The PDFCONVERSIONAPI_KEY secret is not set: live tests skipped."
+            exit 0
+          fi
+          dotnet test tests/PdfConversionApi.Tests -c Release --no-build -f net10.0 --filter "Category=Live"
+
+      - name: Pack
+        run: dotnet pack src/PdfConversionApi -c Release -o artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nuget-package
+          path: artifacts/
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: nuget
+    permissions:
+      contents: read
+      id-token: write # NuGet trusted publishing
+    env:
+      HAS_NUGET_API_KEY: ${{ secrets.NUGET_API_KEY != '' }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: nuget-package
+          path: artifacts/
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Check that the NuGet account is named
+        if: env.HAS_NUGET_API_KEY != 'true' && vars.NUGET_USER == ''
+        run: |
+          echo "::error::Set the NUGET_USER repository variable to the nuget.org profile name of the trusted publishing policy (or the NUGET_API_KEY secret)."
+          exit 1
+
+      - name: NuGet login (trusted publishing)
+        id: login
+        if: env.HAS_NUGET_API_KEY != 'true'
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Push to NuGet
+        run: dotnet nuget push "artifacts/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY || steps.login.outputs.NUGET_API_KEY }}

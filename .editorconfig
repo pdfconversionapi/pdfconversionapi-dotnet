@@ -1,0 +1,29 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{csproj,props,targets,yml,yaml,json}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_prefer_braces = true:warning
+dotnet_sort_system_directives_first = true
+
+# The library targets both net8.0 and netstandard2.0 from one source. These rules ask for APIs
+# that exist only on net8.0 (ArgumentNullException.ThrowIfNull, Memory<byte> stream overloads,
+# span-based string helpers, SearchValues); using them would mean #if branches for no real gain.
+dotnet_diagnostic.CA1510.severity = none
+dotnet_diagnostic.CA1835.severity = none
+dotnet_diagnostic.CA1845.severity = none
+dotnet_diagnostic.CA1846.severity = none
+dotnet_diagnostic.CA1870.severity = none

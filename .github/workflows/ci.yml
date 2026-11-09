@@ -1,0 +1,55 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_NOLOGO: "true"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+      PDFCONVERSIONAPI_CONFORMANCE_DIR: ${{ github.workspace }}/conformance
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      # The conformance runner starts the shared mock API with Node.js.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The copy of the shared conformance suite in conformance/.
+      - name: Check that the conformance suite is in the repository
+        run: |
+          test -f conformance/cases.json && test -f conformance/mock-server.mjs || {
+            echo "::error::conformance/ is missing: this repository keeps a copy of the shared test suite (https://github.com/pdfconversionapi/sdk-conformance) there"
+            exit 1
+          }
+
+      - name: Build (warnings are errors)
+        run: dotnet build PdfConversionApi.sln -c Release
+
+      - name: Test on .NET 8, 9 and 10 against the net8.0 build
+        run: dotnet test tests/PdfConversionApi.Tests -c Release --no-build
+
+      - name: Test on .NET 10 against the netstandard2.0 build
+        run: dotnet test tests/PdfConversionApi.Tests -c Release -f net10.0 -p:LibraryTargetFramework=netstandard2.0
+
+      - name: Pack
+        run: dotnet pack src/PdfConversionApi -c Release -o artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nuget-package
+          path: artifacts/

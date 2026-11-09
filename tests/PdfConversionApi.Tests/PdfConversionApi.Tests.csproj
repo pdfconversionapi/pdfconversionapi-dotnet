@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Test runtimes: net8.0, net9.0 and net10.0 by default (CI installs all three SDKs). On a machine
+    with fewer runtimes, pick one: dotnet test -f net10.0, or -p:TestTargetFrameworks=net10.0.
+
+    Library build under test: the net8.0 build by default. -p:LibraryTargetFramework=netstandard2.0
+    runs the same tests against the netstandard2.0 build.
+  -->
+  <PropertyGroup>
+    <TestTargetFrameworks Condition="'$(TestTargetFrameworks)' == ''">net8.0;net9.0;net10.0</TestTargetFrameworks>
+    <TargetFrameworks>$(TestTargetFrameworks)</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>PdfConversionApi.Tests</RootNamespace>
+    <!-- Test names use underscores; tests await without ConfigureAwait; xUnit1051 asks to pass the test's cancellation token everywhere; constant arrays in assertions are fine. -->
+    <NoWarn>$(NoWarn);CA1707;CA1861;CA2007;xUnit1051</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(LibraryTargetFramework)' == 'netstandard2.0'">
+    <DefineConstants>$(DefineConstants);LIBRARY_NETSTANDARD</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(LibraryTargetFramework)' == ''">
+    <ProjectReference Include="../../src/PdfConversionApi/PdfConversionApi.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(LibraryTargetFramework)' != ''">
+    <ProjectReference Include="../../src/PdfConversionApi/PdfConversionApi.csproj" SetTargetFramework="TargetFramework=$(LibraryTargetFramework)" />
+  </ItemGroup>
+
+</Project>

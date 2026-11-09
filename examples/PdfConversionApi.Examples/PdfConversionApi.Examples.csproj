@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Small programs, one per README section; Program.cs lists them and how to run one. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- Run on the newest runtime installed when .NET 8 itself isn't. -->
+    <RollForward>Major</RollForward>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>PdfConversionApi.Examples</RootNamespace>
+    <!-- Programs, not a library: no ConfigureAwait, and console text isn't localized. -->
+    <NoWarn>$(NoWarn);CA2007;CA1303</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/PdfConversionApi/PdfConversionApi.csproj" />
+    <!-- Only for the IHttpClientFactory example. -->
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
+  </ItemGroup>
+
+</Project>

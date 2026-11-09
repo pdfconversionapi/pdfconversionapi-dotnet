@@ -1,0 +1,9 @@
+bin/
+obj/
+artifacts/
+TestResults/
+*.user
+.vs/
+
+# The local test API's key, if you copy one next to the conformance suite: never commit it.
+/conformance/.local-api.env
